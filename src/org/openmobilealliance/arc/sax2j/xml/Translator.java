@@ -173,6 +173,9 @@ public class Translator
           }
           break;
 
+          case Node.COMMENT_NODE:
+            break;
+
           default:
           {
             throw new RuntimeException("Unsupported node type " + lNode.getNodeType() + " at node " + lNode);
