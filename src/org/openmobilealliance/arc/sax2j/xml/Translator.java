@@ -4,6 +4,7 @@ package org.openmobilealliance.arc.sax2j.xml;
 
 import java.util.regex.Pattern;
 
+import org.apache.xerces.dom.PSVIAttrNSImpl;
 import org.apache.xerces.impl.xs.XSComplexTypeDecl;
 import org.apache.xerces.xs.ElementPSVI;
 import org.apache.xerces.xs.XSComplexTypeDefinition;
@@ -16,6 +17,7 @@ import org.apache.xerces.xs.XSTerm;
 import org.apache.xerces.xs.XSTypeDefinition;
 import org.openmobilealliance.arc.sax2j.json.*;
 import org.w3c.dom.Element;
+import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 
 /**
@@ -102,20 +104,30 @@ public class Translator
     else if (hasNoInterestingChildren(xiElement))
     {
       String lValue = xiElement.getTextContent();
+      XSTypeDefinition lType = lDecl.getTypeDefinition();
 
-      // TODO: switch on translation mode here?
-      if (lDecl.getTypeDefinition().derivedFrom("http://www.w3.org/2001/XMLSchema", "decimal", (short)-1) ||
-          lDecl.getTypeDefinition().derivedFrom("http://www.w3.org/2001/XMLSchema", "float", (short)-1) ||
-          lDecl.getTypeDefinition().derivedFrom("http://www.w3.org/2001/XMLSchema", "double", (short)-1))
-      {
-        lret = JsonNumber.create(lValue);
-      }
-      else if (lDecl.getTypeDefinition().derivedFrom("http://www.w3.org/2001/XMLSchema", "boolean", (short)-1)){
-        lret = JsonBool.create(Boolean.valueOf(lValue));
-      }
-      else
-      {
-        lret = JsonString.create(lValue);
+      NamedNodeMap attr = xiElement.getAttributes();
+      int attrLength = attr.getLength();
+
+      if (attrLength > 0) {
+        JsonObject obj = JsonObject.create();
+        obj.put("#value", MapXsTypeToJsonValue(lType, lValue));
+
+        for (int i = 0; i < attrLength; i++) {
+          PSVIAttrNSImpl attrPsvi = (PSVIAttrNSImpl) attr.item(i);
+
+          XSTypeDefinition attrType = attrPsvi.getTypeDefinition();
+          String attrName = attrPsvi.getNodeName();
+          String attrValue = attrPsvi.getValue();
+
+          obj.put("@" + attrName, MapXsTypeToJsonValue(attrType, attrValue));
+        }
+
+        lret = obj;
+
+      } else {
+        // TODO: switch on translation mode here?
+        lret = MapXsTypeToJsonValue(lType, lValue);
       }
     }
     else
@@ -170,6 +182,24 @@ public class Translator
     }
 
     return lret;
+  }
+
+  /**
+   * @param lType element/attribute type to examine
+   * @param lValue extracted text from xml element/attribute value
+   * @return JsonValue of that type
+   */
+  private static JsonValue MapXsTypeToJsonValue(XSTypeDefinition xsType, String v) {
+    if (xsType.derivedFrom("http://www.w3.org/2001/XMLSchema", "decimal", (short) -1) ||
+        xsType.derivedFrom("http://www.w3.org/2001/XMLSchema", "float", (short) -1) ||
+        xsType.derivedFrom("http://www.w3.org/2001/XMLSchema", "double", (short) -1)) {
+
+      return JsonNumber.create(v);
+    }
+    else if (xsType.derivedFrom("http://www.w3.org/2001/XMLSchema", "boolean", (short) -1)) {
+      return JsonBool.create(Boolean.valueOf(v));
+    }
+    return JsonString.create(v);
   }
 
   /**
