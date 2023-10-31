@@ -117,7 +117,7 @@ public class Translator
           PSVIAttrNSImpl attrPsvi = (PSVIAttrNSImpl) attr.item(i);
 
           XSTypeDefinition attrType = attrPsvi.getTypeDefinition();
-          String attrName = attrPsvi.getNodeName();
+          String attrName = attrPsvi.getName();
           String attrValue = attrPsvi.getValue();
 
           obj.put("@" + attrName, MapXsTypeToJsonValue(attrType, attrValue));
